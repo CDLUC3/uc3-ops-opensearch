@@ -1,6 +1,5 @@
-# Welcome to your CDK TypeScript project
+# A cdk app for building AWS OpenSearch Domain
 
-This is a blank project for CDK development with TypeScript.
 
 The `cdk.json` file tells the CDK Toolkit how to execute your app.
 
