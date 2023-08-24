@@ -4,6 +4,7 @@ import * as cdk from 'aws-cdk-lib';
 import { Uc3OpsOpensearchStack } from '../lib/uc3-ops-opensearch-stack';
 
 const app = new cdk.App();
+
 new Uc3OpsOpensearchStack(app, 'Uc3OpsOpensearchStack', {
   /* Uncomment the next line to specialize this stack for the AWS Account
    * and Region that are implied by the current CLI configuration. */
@@ -14,3 +15,4 @@ new Uc3OpsOpensearchStack(app, 'Uc3OpsOpensearchStack', {
     region: 'us-west-2',
   },
 });
+

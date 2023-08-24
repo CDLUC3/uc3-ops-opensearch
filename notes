@@ -1,4 +1,32 @@
 ________________________________________________________________________________
+8/24/2023
+
+Now looking at non-vpc domain with cognito
+
+https://docs.aws.amazon.com/opensearch-service/latest/developerguide/cognito-auth.html
+
+example cli call from the doc:
+
+aws opensearch create-domain --domain-name my-domain --region us-east-1
+--access-policies '{ 
+	"Version":"2012-10-17",
+	 "Statement":[{
+		"Effect":"Allow",
+		"Principal":{"AWS": ["arn:aws:iam::123456789012:role/Cognito_Auth_Role"]},
+		"Action":"es:ESHttp*","Resource":"arn:aws:es:us-east-1:123456789012:domain/*"
+	 }]
+}'
+ --engine-version "OpenSearch_1.0" 
+--cluster-config InstanceType=m4.xlarge.search,InstanceCount=1 
+--ebs-options EBSEnabled=true,VolumeSize=10 
+--cognito-options Enabled=true,UserPoolId="us-east-1_123456789",IdentityPoolId="us-east-1:12345678-1234-1234-1234-123456789012",RoleArn="arn:aws:iam::123456789012:role/CognitoAccessForAmazonOpenSearch"
+
+
+
+
+
+
+________________________________________________________________________________
 8/23/2023
 
 I'm looking into using a bastion host to connect to my vpc OS domain using ssm session manager.
