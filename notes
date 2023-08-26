@@ -1,4 +1,140 @@
 ________________________________________________________________________________
+8/25/2023
+
+got real far.  Ive create OS service role, cognito userpool,appclient,identitypool. cdk synth
+succeeds, but cdk deploy fails when I try to apply these in the coggnito options.  
+
+
+ResourceProperties: '{"CognitoOptions":{"UserPoolId":"us-west-2_s0hFURHmp","Enabled":"true","IdentityPoolId":"us-west-2:01289f10-9d7d-470c-948d-9d61f3c3ea5e","RoleArn":"arn:aws:iam::671846987296:role/CognitoAccessForAmazonOpenSearch"},"AdvancedSecurityOptions":{"InternalUserDatabaseEnabled":"true","Enabled":"true","MasterUserOptions":{"MasterUserPassword":"{{resolve:secretsmanager:uc3-ops-opensearch-dev-admin-password:SecretString:::}}","MasterUserName":"domain-admin"}},"EngineVersion":"OpenSearch_2.7","SoftwareUpdateOptions":{"AutoSoftwareUpdateEnabled":"true"},"LogPublishingOptions":{"ES_APPLICATION_LOGS":{"CloudWatchLogsLogGroupArn":"arn:aws:logs:us-west-2:671846987296:log-group:Uc3OpsOpensearchStack-DomainAppLogs21698C1B-wkOCFhCxdMbM:*","Enabled":"true"}},"EBSOptions":{"EBSEnabled":"true","VolumeType":"gp2","VolumeSize":"10"},"NodeToNodeEncryptionOptions":{"Enabled":"true"},"EncryptionAtRestOptions":{"Enabled":"true"},"DomainEndpointOptions":{"EnforceHTTPS":"true","TLSSecurityPolicy":"Policy-Min-TLS-1-0-2019-07"},"ClusterConfig":{"InstanceCount":"3","MultiAZWithStandbyEnabled":"false","DedicatedMasterEnabled":"false","ZoneAwarenessConfig":{"AvailabilityZoneCount":"3"},"InstanceType":"t3.small.search","ZoneAwarenessEnabled":"true"}}'
+ResourceStatus: UPDATE_FAILED
+ResourceStatusReason: 'Resource handler returned message: "Invalid request provided:
+  Domain needs to be specified for user pool (Service: OpenSearch, Status Code: 400,
+  Request ID: e659f6cd-fe7b-4b72-8f90-e946faeda9a3)" (RequestToken: 049606ea-1487-14aa-b3ac-c0cb652feafe,
+  HandlerErrorCode: InvalidRequest)'
+ResourceType: AWS::OpenSearchService::Domain
+Timestamp: '2023-08-25T23:52:14.901000+00:00'
+
+
+
+
+________________________________________________________________________________
+8/25/2023
+
+trying to create a cognito identity pool.  this requires alpha npm package 
+@aws-cdk/aws-cognito-identitypool-alpha.  I installed this globally, but keep getting error:
+
+agould@localhost:~/development/aws-cdk/workspace/uc3-ops-opensearch> cdk synth
+/home/agould/development/aws-cdk/workspace/uc3-ops-opensearch/node_modules/ts-node/src/index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+lib/uc3-ops-opensearch-stack.ts:9:62 - error TS2307: Cannot find module '@aws-cdk/aws-cognito-identitypool-alpha@2.93.0-alpha.0' or its corresponding type declarations.
+
+9 import { IdentityPool, UserPoolAuthenticationProvider } from '@aws-cdk/aws-cognito-identitypool-alpha@2.93.0-alpha.0';
+                                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    at createTSError (/home/agould/development/aws-cdk/workspace/uc3-ops-opensearch/node_modules/ts-node/src/index.ts:859:12)
+    at reportTSError (/home/agould/development/aws-cdk/workspace/uc3-ops-opensearch/node_modules/ts-node/src/index.ts:863:19)
+    at getOutput (/home/agould/development/aws-cdk/workspace/uc3-ops-opensearch/node_modules/ts-node/src/index.ts:1077:36)
+    at Object.compile (/home/agould/development/aws-cdk/workspace/uc3-ops-opensearch/node_modules/ts-node/src/index.ts:1433:41)
+    at Module.m._compile (/home/agould/development/aws-cdk/workspace/uc3-ops-opensearch/node_modules/ts-node/src/index.ts:1617:30)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1287:10)
+    at Object.require.extensions.<computed> [as .ts] (/home/agould/development/aws-cdk/workspace/uc3-ops-opensearch/node_modules/ts-node/src/index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1091:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:938:12)
+    at Module.require (node:internal/modules/cjs/loader:1115:19) {
+  diagnosticCodes: [ 2307 ]
+}
+
+Subprocess exited with error 1
+
+
+
+I tried installing it locally, I tried adding it to packages.json. I tried a bunch of google/stacktrace dead ends.  But one of these paid off:
+
+
+  I have faced similar issue and my build was not working.
+  
+  However, my installing ts-node as global seems to solve the problem
+  
+  npm install -g typescript
+  npm install -g ts-node
+  npm install -g aws-cdk
+
+
+after installing ts-node globally, it still errored.  so then I installed the cognito alpha locally,
+and now it works:
+
+
+agould@localhost:~/development/aws-cdk/workspace/uc3-ops-opensearch> npm -g list
+/home/agould/.nvm/versions/node/v20.5.0/lib
+├── @aws-cdk/aws-cognito-identitypool-alpha@2.93.0-alpha.0
+├── aws-cdk-lib@2.93.0
+├── aws-cdk@2.93.0
+├── constructs@10.2.69
+├── corepack@0.19.0
+├── npm@9.8.1
+└── typescript@5.1.6
+
+agould@localhost:~/development/aws-cdk/workspace/uc3-ops-opensearch> npm list
+npm ERR! code ELSPROBLEMS
+npm ERR! missing: @aws-cdk/aws-cognito-identitypool-alpha@^2.93.02.93.0, required by uc3-ops-opensearch@0.1.0
+uc3-ops-opensearch@0.1.0 /home/agould/development/aws-cdk/workspace/uc3-ops-opensearch
+├── UNMET DEPENDENCY @aws-cdk/aws-cognito-identitypool-alpha@^2.93.02.93.0
+├── @types/jest@29.5.3
+├── @types/node@20.4.10
+├── aws-cdk-lib@2.92.0
+├── aws-cdk@2.92.0
+├── constructs@10.2.69
+├── jest@29.6.3
+├── source-map-support@0.5.21
+├── ts-jest@29.1.1
+├── ts-node@10.9.1
+└── typescript@5.1.6
+
+
+npm ERR! A complete log of this run can be found in: /home/agould/.npm/_logs/2023-08-25T21_59_01_871Z-debug-0.log
+
+agould@localhost:~/development/aws-cdk/workspace/uc3-ops-opensearch> npm install -g ts-node
+
+added 19 packages in 2s
+agould@localhost:~/development/aws-cdk/workspace/uc3-ops-opensearch> npm run build
+
+> uc3-ops-opensearch@0.1.0 build
+> tsc
+
+lib/uc3-ops-opensearch-stack.ts:9:62 - error TS2307: Cannot find module '@aws-cdk/aws-cognito-identitypool-alpha' or its corresponding type declarations.
+
+9 import { IdentityPool, UserPoolAuthenticationProvider } from '@aws-cdk/aws-cognito-identitypool-alpha';
+                                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+Found 1 error in lib/uc3-ops-opensearch-stack.ts:9
+
+agould@localhost:~/development/aws-cdk/workspace/uc3-ops-opensearch> npm install @aws-cdk/aws-cognito-identitypool-alpha
+
+added 1 package, changed 2 packages, and audited 356 packages in 3s
+
+33 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+agould@localhost:~/development/aws-cdk/workspace/uc3-ops-opensearch> npm run build
+
+> uc3-ops-opensearch@0.1.0 build
+> tsc
+
+agould@localhost:~/development/aws-cdk/workspace/uc3-ops-opensearch> cdk synth
+Resources:
+  openSearchDomainUserPoolC7EA1A42:
+    Type: AWS::Cognito::UserPool
+
+
+
+
+
+
+________________________________________________________________________________
 8/24/2023
 
 Now looking at non-vpc domain with cognito
