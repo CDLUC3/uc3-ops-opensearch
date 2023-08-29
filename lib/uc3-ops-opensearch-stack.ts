@@ -41,17 +41,23 @@ export class Uc3OpsOpensearchStack extends cdk.Stack {
         requireDigits: true,
         requireSymbols: false,
       },
-      accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
+      accountRecovery: cognito.AccountRecovery.NONE,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
-    const domainIdentityPool = new IdentityPool(this, 'DomainIdentityPool', {
+    const domainIdentityPool = new IdentityPool(this, 'IdentityPool', {
       identityPoolName: 'uc3OpsOpenSearch-identitypool',
       // this generates an appClient, not sure how to access it in cdk though
-      authenticationProviders: {
-        userPools: [new UserPoolAuthenticationProvider({ userPool: domainUserPool })],
-      },
+      //authenticationProviders: {
+      //  userPools: [new UserPoolAuthenticationProvider({ userPool: domainUserPool })],
+      //},
     }); 
+
+    domainUserPool.addDomain('CognitoDomain', {
+      cognitoDomain: {
+        domainPrefix: 'uc3-ops-opensearch',
+      },
+    });
 
     //const domainUserPoolAppClient = domainIdentityPool.addUserPoolAuthentication(new UserPoolAuthenticationProvider({
     //  userPool: domainUserPool,
