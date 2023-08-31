@@ -136,6 +136,16 @@ export class Uc3OpsOpensearchStack extends cdk.Stack {
 
     });
 
+
+    domain.addAccessPolicies(
+      new iam.PolicyStatement({
+        actions: ['es:ESHttp*'],
+        effect: iam.Effect.ALLOW,
+        principals: [new iam.ArnPrincipal(domainIdentityPool.authenticatedRole.roleArn)],
+        resources: [domain.domainArn, `${domain.domainArn}/*`],
+      })
+    );
+
     new cdk.CfnOutput(this, 'domainName', {
       value: domain.domainName,
     });
