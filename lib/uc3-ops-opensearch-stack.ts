@@ -47,10 +47,6 @@ export class Uc3OpsOpensearchStack extends cdk.Stack {
 
     const domainIdentityPool = new IdentityPool(this, 'IdentityPool', {
       identityPoolName: 'uc3OpsOpenSearch-identitypool',
-      // this generates an appClient, not sure how to access it in cdk though
-      //authenticationProviders: {
-      //  userPools: [new UserPoolAuthenticationProvider({ userPool: domainUserPool })],
-      //},
     }); 
 
     domainUserPool.addDomain('CognitoDomain', {
@@ -59,16 +55,6 @@ export class Uc3OpsOpensearchStack extends cdk.Stack {
       },
     });
 
-    //const domainUserPoolAppClient = domainIdentityPool.addUserPoolAuthentication(new UserPoolAuthenticationProvider({
-    //  userPool: domainUserPool,
-    //}));
-
-    //const DomainUserPoolAppClient = domainUserPool.addClient('AppClient', {
-    //  userPoolClientName: 'uc3OpsOpenSearch-appclient',
-    //  authFlows: {
-    //    userPassword: true,
-    //  },
-    //});
 
 
     // OpenSearch service role for Cognito
@@ -86,6 +72,58 @@ export class Uc3OpsOpensearchStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'domainSearchRoleName', {
       value: domainSearchRole.roleName,
     });
+
+
+
+
+    // Cognito UserPool groups and roles
+    //
+    const identityPoolFederatedPrinical =  new iam.FederatedPrincipal(
+      'cognito-identity.amazonaws.com',
+      {
+        "StringEquals": {
+          "cognito-identity.amazonaws.com:aud": domainIdentityPool.identityPoolId
+        },
+        "ForAnyValue:StringLike": {
+          "cognito-identity.amazonaws.com:amr": "authenticated"
+        },
+      },
+      'sts:AssumeRoleWithWebIdentity'
+    );
+
+    // Role for members of domainAdminGroup
+    const domainAdminGroupRole = new iam.Role(this, 'uc3OpsOpenSearchAdminGroupRole', {
+      assumedBy: identityPoolFederatedPrinical,
+      roleName: 'OpenSearchDomainAdminGroupRole',
+      description: 'OpenSearch administrator access for domainAdminGroup',
+      //managedPolicies: [iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonOpenSearchServiceFullAccess')],
+    });
+
+    // Role for members of domainDeveloperGroup
+    const domainDeveloperGroupRole = new iam.Role(this, 'uc3OpsOpenSearchDeveloperGroupRole', {
+      assumedBy: identityPoolFederatedPrinical,
+      roleName: 'OpenSearchDomainDeveloperGroupRole',
+      description: 'OpenSearch developer access for domainDeveloperGroup',
+      managedPolicies: [iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonOpenSearchServiceReadOnlyAccess')],
+    });
+
+    const domainAdminGroup = new cognito.CfnUserPoolGroup(this, 'domainAdminGroup', {
+      userPoolId: domainUserPool.userPoolId ,
+      description: 'OpenSearch Administrators',
+      groupName: 'admin',
+      precedence: 1,
+      roleArn: domainAdminGroupRole.roleArn,
+    });
+
+    const domainDeveloperGroup = new cognito.CfnUserPoolGroup(this, 'domainDeveloperGroup', {
+      userPoolId: domainUserPool.userPoolId ,
+      description: 'Uc3 Developers',
+      groupName: 'developer',
+      precedence: 10,
+      roleArn: domainDeveloperGroupRole.roleArn,
+    });
+
+
 
 
     // OpenSearch Domain
@@ -109,8 +147,9 @@ export class Uc3OpsOpensearchStack extends cdk.Stack {
       },
       enforceHttps: true,
       fineGrainedAccessControl: {
-        masterUserName: 'domain-admin',
-        masterUserPassword: cdk.SecretValue.secretsManager('uc3-ops-opensearch-dev-admin-password'),
+        //masterUserName: 'domain-admin',
+        masterUserArn: domainAdminGroupRole.roleArn,
+        //masterUserPassword: cdk.SecretValue.secretsManager('uc3-ops-opensearch-dev-admin-password'),
       },
       zoneAwareness: {
         enabled: true,
@@ -136,7 +175,6 @@ export class Uc3OpsOpensearchStack extends cdk.Stack {
 
     });
 
-
     domain.addAccessPolicies(
       new iam.PolicyStatement({
         actions: ['es:ESHttp*'],
@@ -145,6 +183,29 @@ export class Uc3OpsOpensearchStack extends cdk.Stack {
         resources: [domain.domainArn, `${domain.domainArn}/*`],
       })
     );
+
+    
+    domainAdminGroupRole.addToPolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: ["es:ESHttp*"],
+        //principals: [new iam.AnyPrincipal()],
+        resources: [domain.domainArn, `${domain.domainArn}/*`],
+      })
+    );
+    
+    //domainAdminGroupRole.addToPolicy(
+    //  new iam.Policy(this, 'openSearchAdminPoliciy', {
+    //      statements: [new iam.PolicyStatement({
+    //        effect: iam.Effect.ALLOW,
+    //        actions: ["es:ESHttp*"],
+    //        resources: [domain.domainArn, `${domain.domainArn}/*`],
+    //        principals: [new iam.AnyPrincipal()],
+    //      })
+    //    ],
+    //  })
+    //);
+
 
     new cdk.CfnOutput(this, 'domainName', {
       value: domain.domainName,
