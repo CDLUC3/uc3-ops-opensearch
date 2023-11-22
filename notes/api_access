@@ -1,0 +1,40 @@
+curl -XGET "http://localhost:9200/_plugins/_security/api/account"
+
+ashleyg@sonic.net	8yWstV734BJFKUr		0h_my_60D	Q64PPC#}i4";n"p
+
+
+see this link for example of role mapping:
+
+https://docs.aws.amazon.com/opensearch-service/latest/developerguide/fgac.html#fgac-more-masters
+
+PUT _plugins/_security/api/rolesmapping/all_access
+{
+  "backend_roles": [
+    "arn:aws:iam::123456789012:role/fourth-master-user"
+  ],
+  "hosts": [],
+  "users": [
+    "master-user",
+    "second-master-user",
+    "arn:aws:iam::123456789012:user/third-master-user"
+  ]
+}
+
+PUT _plugins/_security/api/rolesmapping/security_manager
+{
+  "backend_roles": [
+    "arn:aws:iam::123456789012:role/fourth-master-user"
+  ],
+  "hosts": [],
+  "users": [
+    "master-user",
+    "second-master-user",
+    "arn:aws:iam::123456789012:user/third-master-user"
+  ]
+}
+
+
+
+Here is link to full fleged cognito app:
+
+https://github.com/aws/aws-cdk/issues/22951

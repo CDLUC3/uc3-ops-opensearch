@@ -6,7 +6,7 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import { aws_opensearchservice as opensearch } from 'aws-cdk-lib';
-import { IdentityPool, UserPoolAuthenticationProvider } from '@aws-cdk/aws-cognito-identitypool-alpha';
+import { IdentityPool, IdentityPoolRoleMapping, IdentityPoolProviderUrl } from '@aws-cdk/aws-cognito-identitypool-alpha';
 
 
 export class Uc3OpsOpensearchStack extends cdk.Stack {
@@ -47,7 +47,23 @@ export class Uc3OpsOpensearchStack extends cdk.Stack {
 
     const domainIdentityPool = new IdentityPool(this, 'IdentityPool', {
       identityPoolName: 'uc3OpsOpenSearch-identitypool',
+      // https://docs.aws.amazon.com/cdk/api/v2/docs/@aws-cdk_aws-cognito-identitypool-alpha.IdentityPoolProviderUrl.html
+      roleMappings: [{
+        //mappingKey: 'cognito',
+        mappingKey: 'userpool',
+        providerUrl: IdentityPoolProviderUrl.userPool(domainUserPool.userPoolProviderUrl),
+        //providerUrl: IdentityPoolProviderUrl.userPool(f"cognito-idp.{Stack.of(Uc3OpsOpensearchStack).region}.amazonaws.com/{domainUserPool.userPoolId}:{client.user_pool_client_id}"),
+        useToken: true,
+      }],
     }); 
+
+
+// Uc3OpsOpensearchStack: creating CloudFormation changeset...
+//6:47:45 PM | UPDATE_FAILED        | AWS::Cognito::IdentityPoolRoleAttachment | IdentityPoolDefaul...AttachmentD81AFC39
+//(https://cognito-idp.us-west-2.amazonaws.com/us-west-2_s0hFURHmp) is not a valid RoleMapping ProviderName or is not a configured provider. (Service: AmazonCognitoIdentity; Status Code: 400; Error Code: Invalid
+
+
+
 
     domainUserPool.addDomain('CognitoDomain', {
       cognitoDomain: {
@@ -96,7 +112,6 @@ export class Uc3OpsOpensearchStack extends cdk.Stack {
       assumedBy: identityPoolFederatedPrinical,
       roleName: 'OpenSearchDomainAdminGroupRole',
       description: 'OpenSearch administrator access for domainAdminGroup',
-      //managedPolicies: [iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonOpenSearchServiceFullAccess')],
     });
 
     // Role for members of domainDeveloperGroup
@@ -104,7 +119,6 @@ export class Uc3OpsOpensearchStack extends cdk.Stack {
       assumedBy: identityPoolFederatedPrinical,
       roleName: 'OpenSearchDomainDeveloperGroupRole',
       description: 'OpenSearch developer access for domainDeveloperGroup',
-      managedPolicies: [iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonOpenSearchServiceReadOnlyAccess')],
     });
 
     const domainAdminGroup = new cognito.CfnUserPoolGroup(this, 'domainAdminGroup', {
@@ -148,7 +162,8 @@ export class Uc3OpsOpensearchStack extends cdk.Stack {
       enforceHttps: true,
       fineGrainedAccessControl: {
         //masterUserName: 'domain-admin',
-        masterUserArn: domainAdminGroupRole.roleArn,
+        //masterUserArn: domainAdminGroupRole.roleArn,
+        masterUserArn: domainIdentityPool.authenticatedRole.roleArn
         //masterUserPassword: cdk.SecretValue.secretsManager('uc3-ops-opensearch-dev-admin-password'),
       },
       zoneAwareness: {
@@ -167,7 +182,7 @@ export class Uc3OpsOpensearchStack extends cdk.Stack {
       },
 
       logging: {
-        auditLogEnabled: false,
+        auditLogEnabled: true,
         slowSearchLogEnabled: false,
         appLogEnabled: true,
         slowIndexLogEnabled: false,
@@ -179,7 +194,8 @@ export class Uc3OpsOpensearchStack extends cdk.Stack {
       new iam.PolicyStatement({
         actions: ['es:ESHttp*'],
         effect: iam.Effect.ALLOW,
-        principals: [new iam.ArnPrincipal(domainIdentityPool.authenticatedRole.roleArn)],
+        //principals: [new iam.ArnPrincipal(domainIdentityPool.authenticatedRole.roleArn)],
+        principals: [new iam.ArnPrincipal('*')],
         resources: [domain.domainArn, `${domain.domainArn}/*`],
       })
     );

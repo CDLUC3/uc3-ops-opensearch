@@ -1,0 +1,41 @@
+________________________________________________________________________________
+8/29/2023
+
+notes from colin regarding aws sso as cognito idp:
+
+Glad ya'll like it.  It may interest you to know that  nagios.cdlib.org is a cname that was pointing to the A record for the ec2 instance running nagios.  I changed it to point to the A record the ALB is using (ias-nagios.cdlib.org), and I even remembered to include the alternate subject name in the cert, but cognito didn't like that and would throw up an error if you didn't use ias-nagios.cdlib.org explicitly.  Still not entirely sure why, but I'm guessing it's probably a cross site forgery kind of thing built into cognito/ALB.  I had to add a rewrite rule to the listener to rewrite the host header to get it to work when using the cname.  Totally didn't see that one coming and had to figure it out on the fly this morning.
+
+---
+
+Aug 24
+
+  1:25 PM
+Hey Colin, can you point me to documentation on how to setup cognito with aws sso?
+  1:27 PM
+Ours or AWS's?  Ours is on github:https://github.com/cdlib/ias-cognito-sso
+1:27
+I probably need to add you.  And my MFA device is out of reach.  One second...
+1:32
+I had to cherry pick from a bunch of AWS docs to get it to work.  I think these 4 are mostly what I used:
+
+    https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-authentication-flow.html
+    https://static.global.sso.amazonaws.com/app-520727d4117d1647/instructions/index.htm
+    https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-configuring-federation-with-saml-2-0-idp.html
+    https://repost.aws/knowledge-center/cognito-user-pool-iam-integration
+
+docs.aws.amazon.comdocs.aws.amazon.com
+User pool authentication flow - Amazon Cognito
+A description of the sign-in process with Amazon Cognito user pools and the user pools API. A description of the sequence of API requests that result in sign-up, sign-in, account lockout, and user migration.
+docs.aws.amazon.comdocs.aws.amazon.com
+Step 4. Add sign-in with a SAML identity provider to a user pool (optional) - Amazon Cognito
+You can enable your app users to sign in through a SAML identity provider (IdP). Whether your users sign in directly or through a third party, all users have a profile in the user pool. Skip this step if you don't want to add sign in through a SAML identity provider.
+
+Amazon Web Services, Inc.Amazon Web Services, Inc.
+Integrate IAM Identity Center with Amazon Cognito
+I want to configure AWS IAM Identity Center (successor to AWS Single Sign-On) with a third-party identity provider (IdP) for my Amazon Cognito user pool.
+1:34
+You'll need us to do the SSO/IdP side, and it's not available through the SDK or CLI, just clickops in the console, so we can't even set up a pull request thingie with this stuff.  But you can do the Cognito User (and Identity Pool, if necessary) side and the ALB or whatever you use instead of an ALB side as IaC.
+1:37
+Amy used a lambda function with her own logic for the authorizer.  I'm trying to figure out how to make API Gateway do that, but so far it doesn't seem to be completely possible.  It only seems to work if you can somehow turn the tokens from cognito into a query string in the URL, or find some way to pass them as JWT tokens, which Cognito apparently doesn't do.  The ALB Listener Authentication Rule has some magic to handle all this, but API Gateway does not.
+
+

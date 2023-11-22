@@ -1,42 +1,125 @@
 ________________________________________________________________________________
-8/29/2023
+11/21/2023
 
-notes from colin regarding aws sso as cognito idp:
+I have not run a cdl deploy in a while and now i get:
 
-Glad ya'll like it.  It may interest you to know that  nagios.cdlib.org is a cname that was pointing to the A record for the ec2 instance running nagios.  I changed it to point to the A record the ALB is using (ias-nagios.cdlib.org), and I even remembered to include the alternate subject name in the cert, but cognito didn't like that and would throw up an error if you didn't use ias-nagios.cdlib.org explicitly.  Still not entirely sure why, but I'm guessing it's probably a cross site forgery kind of thing built into cognito/ALB.  I had to add a rewrite rule to the listener to rewrite the host header to get it to work when using the cname.  Totally didn't see that one coming and had to figure it out on the fly this morning.
+agould@localhost:~/git/github/cdluc3/uc3-ops-opensearch> cdk diff
+Stack Uc3OpsOpensearchStack
+current credentials could not be used to assume 'arn:aws:iam::671846987296:role/cdk-hnb659fds-lookup-role-671846987296-us-west-2', but are for the right account. Proceeding anyway.
+(To get rid of this warning, please upgrade to bootstrap version >= 8)
+
+
+this link tells me to upgrade aws-cdk:
+
+
+agould@localhost:~/git/github/cdluc3/uc3-ops-opensearch> npm update --save
+
+added 2 packages, removed 3 packages, changed 76 packages, and audited 355 packages in 7s
+
+34 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+agould@localhost:~/git/github/cdluc3/uc3-ops-opensearch> git diff package.json
+agould@localhost:~/git/github/cdluc3/uc3-ops-opensearch> git --no-pager diff package.json 
+diff --git a/package.json b/package.json
+index c0f256a..aec6179 100644
+--- a/package.json
++++ b/package.json
+@@ -11,10 +11,10 @@
+     "cdk": "cdk"
+   },
+   "devDependencies": {
+-    "@types/jest": "^29.5.3",
++    "@types/jest": "^29.5.9",
+     "@types/node": "20.4.10",
+-    "aws-cdk": "^2.92.0",
+-    "jest": "^29.6.2",
++    "aws-cdk": "^2.110.0",
++    "jest": "^29.7.0",
+     "ts-jest": "^29.1.1",
+     "ts-node": "^10.9.1",
+     "typescript": "~5.1.6"
+@@ -22,7 +22,7 @@
+   "dependencies": {
+     "@aws-cdk/aws-cognito-identitypool-alpha": "^2.93.02.93.0",
+     "aws-cdk-lib": "^2.92.0",
+-    "constructs": "^10.0.0",
++    "constructs": "^10.3.0",
+     "source-map-support": "^0.5.21"
+   }
+ }
+
+
+
+
+________________________________________________________________________________
+11/17/2023
+
+Debugging access issue
+
+I am able to authenticate via cognito as user agould@ucop.edu, but once I get OS dashboard
+I see the following error:
+
+    url: https://search-domain66ac69e0-a1brihms6rtc-tglv54org5zvnqxkgsbfpcehtq.us-west-2.es.amazonaws.com/_dashboards/app/customerror/missing-role
+    
+    Missing Role
+    No roles available for this user, please contact your system administrator.
+    Back to OpenSearch Dashboards Home
+
+user agould@ucop.edu is in the admins group which has the following role:
+arn:aws:iam::671846987296:role/OpenSearchDomainAdminGroupRole
+
+agould@localhost:~> iam-role-show OpenSearchDomainAdminGroupRole
+Arn: arn:aws:iam::671846987296:role/OpenSearchDomainAdminGroupRole
+AssumeRolePolicyDocument:
+  Statement:
+    - Action: sts:AssumeRoleWithWebIdentity
+      Condition:
+        ForAnyValue:StringLike:
+          cognito-identity.amazonaws.com:amr: authenticated
+        StringEquals:
+          cognito-identity.amazonaws.com:aud: us-west-2:5b35abbb-b07e-42e3-93ee-7a0001d47b79
+      Effect: Allow
+      Principal:
+        Federated: cognito-identity.amazonaws.com
+  Version: '2012-10-17'
+CreateDate: '2023-08-31T20:03:40+00:00'
+Description: OpenSearch administrator access for domainAdminGroup
+MaxSessionDuration: 3600
+Path: /
+RoleId: AROAZY3JTOYQNDLKTFIPX
+RoleLastUsed: {}
+RoleName: OpenSearchDomainAdminGroupRole
+
+Inline Policies:
+uc3OpsOpenSearchAdminGroupRoleDefaultPolicyB3F31E04
+
+Attached Policies:
+
+agould@localhost:~> iam-role-show-inline-policies OpenSearchDomainAdminGroupRole
+PolicyDocument:
+  Statement:
+    - Action: es:ESHttp*
+      Effect: Allow
+      Resource:
+        - arn:aws:es:us-west-2:671846987296:domain/domain66ac69e0-a1brihms6rtc
+        - arn:aws:es:us-west-2:671846987296:domain/domain66ac69e0-a1brihms6rtc/*
+  Version: '2012-10-17'
+PolicyName: uc3OpsOpenSearchAdminGroupRoleDefaultPolicyB3F31E04
+RoleName: OpenSearchDomainAdminGroupRole
 
 ---
 
-Aug 24
+Actions, resources, and condition keys for Amazon OpenSearch Service:
+https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonopensearchservice.html
 
-  1:25 PM
-Hey Colin, can you point me to documentation on how to setup cognito with aws sso?
-  1:27 PM
-Ours or AWS's?  Ours is on github:https://github.com/cdlib/ias-cognito-sso
-1:27
-I probably need to add you.  And my MFA device is out of reach.  One second...
-1:32
-I had to cherry pick from a bunch of AWS docs to get it to work.  I think these 4 are mostly what I used:
+OpenSearch API Reference:
+https://docs.aws.amazon.com/opensearch-service/latest/APIReference/Welcome.html
 
-    https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-authentication-flow.html
-    https://static.global.sso.amazonaws.com/app-520727d4117d1647/instructions/index.htm
-    https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-configuring-federation-with-saml-2-0-idp.html
-    https://repost.aws/knowledge-center/cognito-user-pool-iam-integration
+Configuring Amazon Cognito authentication for OpenSearch Dashboards
+https://docs.aws.amazon.com/opensearch-service/latest/developerguide/cognito-auth.html
 
-docs.aws.amazon.comdocs.aws.amazon.com
-User pool authentication flow - Amazon Cognito
-A description of the sign-in process with Amazon Cognito user pools and the user pools API. A description of the sequence of API requests that result in sign-up, sign-in, account lockout, and user migration.
-docs.aws.amazon.comdocs.aws.amazon.com
-Step 4. Add sign-in with a SAML identity provider to a user pool (optional) - Amazon Cognito
-You can enable your app users to sign in through a SAML identity provider (IdP). Whether your users sign in directly or through a third party, all users have a profile in the user pool. Skip this step if you don't want to add sign in through a SAML identity provider.
-
-Amazon Web Services, Inc.Amazon Web Services, Inc.
-Integrate IAM Identity Center with Amazon Cognito
-I want to configure AWS IAM Identity Center (successor to AWS Single Sign-On) with a third-party identity provider (IdP) for my Amazon Cognito user pool.
-1:34
-You'll need us to do the SSO/IdP side, and it's not available through the SDK or CLI, just clickops in the console, so we can't even set up a pull request thingie with this stuff.  But you can do the Cognito User (and Identity Pool, if necessary) side and the ALB or whatever you use instead of an ALB side as IaC.
-1:37
-Amy used a lambda function with her own logic for the authorizer.  I'm trying to figure out how to make API Gateway do that, but so far it doesn't seem to be completely possible.  It only seems to work if you can somehow turn the tokens from cognito into a query string in the URL, or find some way to pass them as JWT tokens, which Cognito apparently doesn't do.  The ALB Listener Authentication Rule has some magic to handle all this, but API Gateway does not.
 
 ________________________________________________________________________________
 8/25/2023
