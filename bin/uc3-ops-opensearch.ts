@@ -2,6 +2,7 @@
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
 import { Uc3OpsOpensearchStack } from '../lib/uc3-ops-opensearch-stack';
+import { Uc3OpsOpensearchDebugStack } from '../lib/uc3-ops-opensearch-debug-stack';
 
 const app = new cdk.App();
 
@@ -16,3 +17,4 @@ new Uc3OpsOpensearchStack(app, 'Uc3OpsOpensearchStack', {
   },
 });
 
+new Uc3OpsOpensearchDebugStack(app, 'Uc3OpsOpensearchDebugStack');

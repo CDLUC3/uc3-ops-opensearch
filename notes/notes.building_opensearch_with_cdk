@@ -1,4 +1,98 @@
 ________________________________________________________________________________
+11/27/2023
+
+Headaches with CDK when trying to configure the IdentityPool role mappings for OpenSearch.
+
+the @aws-cdk/aws-cognito-identitypool-alpha package docs say I need to set up a roleMapping
+for the identity pool.  one of the required params is `providerUrl`.  But the documented
+syntax does not work:
+
+  // https://docs.aws.amazon.com/cdk/api/v2/docs/@aws-cdk_aws-cognito-identitypool-alpha.IdentityPoolProviderUrl.html
+
+  const domainIdentityPool = new IdentityPool(this, 'IdentityPool', {
+    identityPoolName: 'uc3OpsOpenSearch-identitypool',
+    roleMappings: [{
+      mappingKey: 'userpool',
+      providerUrl: IdentityPoolProviderUrl.userPool(domainUserPool.userPoolProviderUrl),
+      useToken: true,
+    }],
+  }); 
+
+this syntax returns `https://cognito-idp.us-west-2.amazonaws.com/us-west-2_s0hFURHmp`
+accourdingg to cloudformation docs it is supposed to return
+`https://cognito-idp.us-west-2.amazonaws.com/us-west-2_s0hFURHmp/<client_id>`
+
+here is error:
+ Uc3OpsOpensearchStack: creating CloudFormation changeset...
+6:47:45 PM | UPDATE_FAILED        | AWS::Cognito::IdentityPoolRoleAttachment | IdentityPoolDefaul...AttachmentD81AFC39
+(https://cognito-idp.us-west-2.amazonaws.com/us-west-2_s0hFURHmp) is not a valid RoleMapping ProviderName or is not a configured provider. (Service: AmazonCognitoIdentity; Status Code: 400; Error Code: Invalid
+
+
+So far i/ve tried to use lowlevel constructs first for the roleMapping and then
+for both the rolemapping and the identidty pool together.  but I don't get how
+to mix these with the other CDK constructs.
+
+
+Things to try:
+
+abandon use of congnito user groups and instead use user attributes
+
+continue to debug use of lowlevel constructs.  This may be useful knowledge if I get it working.
+
+---
+
+working in branch role_mapping_error-use_lowlevel_constructs
+
+
+after much more reading and testing I am not able to generate a roleMappings resource with cdk.
+
+I/ve tried to submit the `providerUrl` in the following formats, all fail:
+
+    const userPoolProviderUrl = domainUserPool.userPoolProviderUrl;
+    const userPoolClientId = OSDomainClient.userPoolClientId;
+    const providerUrl = `${userPoolProviderUrl}:${userPoolClientId}`;
+    //const providerUrl = `${userPoolProviderUrl}:app_client_id`;
+    //const providerUrl = `${domainUserPool.userPoolProviderName}:app_client_id`;
+    //const providerUrl = `${domainUserPool.userPoolProviderName}:${userPoolClientId}`;
+
+    const domainIdentityPool = new IdentityPool(this, 'IdentityPool', {
+      identityPoolName: 'uc3OpsOpenSearch-identitypool',
+      // https://docs.aws.amazon.com/cdk/api/v2/docs/@aws-cdk_aws-cognito-identitypool-alpha.IdentityPoolProviderUrl.html
+      roleMappings: [{
+        mappingKey: 'DomainUserPool',
+        //providerUrl: IdentityPoolProviderUrl.userPool(domainUserPool.userPoolProviderUrl),
+        providerUrl: IdentityPoolProviderUrl.userPool(providerUrl),
+        useToken: true,
+      }],
+    }); 
+
+
+
+(https://cognito-idp.us-west-2.amazonaws.com/us-west-2_CEbkThQjT:c5mp0vr557vt633k81nrnkmlq) is not a va
+lid RoleMapping ProviderName
+
+(https://cognito-idp.us-west-2.amazonaws.com/us-west-2_CEbkThQjT:app_client_id) is not a valid RoleMapp
+ing ProviderName
+
+(cognito-idp.us-west-2.amazonaws.com/us-west-2_CEbkThQjT:c5mp0vr557vt633k81nrnkmlq) is not a valid Role
+Mapping ProviderName
+
+(cognito-idp.us-west-2.amazonaws.com/us-west-2_CEbkThQjT:app_client_id) is not a valid RoleMapping Prov
+iderName
+
+
+Here are links to other folks struggles with this bug:
+
+https://github.com/aws/aws-cdk/issues/22951
+https://github.com/aws/aws-cdk/issues/7670
+https://github.com/aws/aws-cdk/issues/19222
+https://github.com/aws/aws-cdk/pull/21585
+
+
+
+
+
+________________________________________________________________________________
 11/21/2023
 
 I have not run a cdl deploy in a while and now i get:
@@ -119,6 +213,23 @@ https://docs.aws.amazon.com/opensearch-service/latest/APIReference/Welcome.html
 
 Configuring Amazon Cognito authentication for OpenSearch Dashboards
 https://docs.aws.amazon.com/opensearch-service/latest/developerguide/cognito-auth.html
+
+---
+
+Issue resolved. 
+
+The docs were terrible.  but I managed to get it working by making changes in the console.
+
+cognito
+  identity pools
+    uc3OpsOpenSearch-identitypool
+      user access
+        Identity provider: us-west-2_s0hFURHmp
+          role settings (edit):
+          - Role selection: Role with preferred_role claim in tokens
+          - Role resolution: Deny request
+
+I can now log in as different user and no longer get associated with the default role.
 
 
 ________________________________________________________________________________

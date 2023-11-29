@@ -45,17 +45,39 @@ export class Uc3OpsOpensearchStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
+    //const domainIdentityPool = new IdentityPool(this, 'IdentityPool', {
+    //  identityPoolName: 'uc3OpsOpenSearch-identitypool',
+    //  // https://docs.aws.amazon.com/cdk/api/v2/docs/@aws-cdk_aws-cognito-identitypool-alpha.IdentityPoolProviderUrl.html
+    //  roleMappings: [{
+    //    //mappingKey: 'cognito',
+    //    mappingKey: 'userpool',
+    //    //providerUrl: IdentityPoolProviderUrl.userPool(domainUserPool.userPoolProviderUrl),
+    //    //providerUrl: IdentityPoolProviderUrl.userPool("cognito-idp:us-west-2:671846987296:userpool/us-west-2_s0hFURHmp:4bjc45cjgdjduvgvm7d34ngsfc"),
+    //    providerUrl: IdentityPoolProviderUrl.userPool("https://cognito-idp.us-west-2.amazonaws.com/us-west-2_s0hFURHmp:4bjc45cjgdjduvgvm7d34ngsfc"),
+    //    useToken: true,
+    //  }],
+    //}); 
+
+
+
     const domainIdentityPool = new IdentityPool(this, 'IdentityPool', {
       identityPoolName: 'uc3OpsOpenSearch-identitypool',
-      // https://docs.aws.amazon.com/cdk/api/v2/docs/@aws-cdk_aws-cognito-identitypool-alpha.IdentityPoolProviderUrl.html
-      roleMappings: [{
-        //mappingKey: 'cognito',
-        mappingKey: 'userpool',
-        providerUrl: IdentityPoolProviderUrl.userPool(domainUserPool.userPoolProviderUrl),
-        //providerUrl: IdentityPoolProviderUrl.userPool(f"cognito-idp.{Stack.of(Uc3OpsOpensearchStack).region}.amazonaws.com/{domainUserPool.userPoolId}:{client.user_pool_client_id}"),
-        useToken: true,
-      }],
+      allowUnauthenticatedIdentities: false
     }); 
+
+
+
+    new cognito.CfnIdentityPoolRoleAttachment(this, "RoleAttachment2", {
+      identityPoolId: domainIdentityPool.identityPoolId,
+      roleMappings: {
+        cognito: { // 👈 manually specified key of "cognito"
+          type: "Token",
+          ambiguousRoleResolution: "Deny",
+          identityProvider: domainUserPool.userPoolProviderUrl
+        }
+      }
+    }).node.addDependency(domainIdentityPool)
+
 
 
 // Uc3OpsOpensearchStack: creating CloudFormation changeset...
