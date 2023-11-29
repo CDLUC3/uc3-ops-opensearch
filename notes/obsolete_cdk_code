@@ -1,0 +1,85 @@
+________________________________________________________________________________
+11/28/2023
+
+
+    // various ways to generate the providerUrl
+    //
+    const userPoolProviderUrl = opensearchUserPool.userPoolProviderUrl;
+    const userPoolClientId = opensearhUserPoolClient.userPoolClientId;
+    //const providerUrl = `${userPoolProviderUrl}:${userPoolClientId}`;
+    //const providerUrl = `${userPoolProviderUrl}:app_client_id`;
+    //const providerUrl = `${opensearchUserPool.userPoolProviderName}:app_client_id`;
+    const providerUrl = `${opensearchUserPool.userPoolProviderName}:${userPoolClientId}`;
+
+    new cdk.CfnOutput(this, 'providerUrl', {
+      value: providerUrl,
+    });
+
+
+
+//    // testing with lowlevel constructs to force feed the providerUrl. 
+//
+//    const opensearchIdentityPool = new cognito.CfnIdentityPool(this, 'IdentityPool', {
+//      allowUnauthenticatedIdentities: false,
+//      identityPoolName: 'uc3OpsOpenSearch-identitypool',
+//    });
+//
+//    new cdk.CfnOutput(this, 'identityPool', {
+//      value: opensearchIdentityPool.ref,
+//    });
+//
+//
+//    const identityPoolFederatedPrinical =  new iam.FederatedPrincipal(
+//      'cognito-identity.amazonaws.com',
+//      {
+//        "StringEquals": {
+//          //"cognito-identity.amazonaws.com:aud": opensearchIdentityPool.identityPoolId
+//          "cognito-identity.amazonaws.com:aud": opensearchIdentityPool.ref
+//        },
+//        "ForAnyValue:StringLike": {
+//          "cognito-identity.amazonaws.com:amr": "authenticated"
+//        },
+//      },
+//      'sts:AssumeRoleWithWebIdentity'
+//    );
+//
+//    const identityPoolAuthenticatedRole = new iam.Role(this, 'identityPoolAuthenticatedRole', {
+//      assumedBy: identityPoolFederatedPrinical,
+//      roleName: 'identityPoolAuthenticatedRole',
+//      description: 'Cognito IdentityPool authenticated role',
+//    });
+//
+//    const identityPoolUnauthenticatedRole = new iam.Role(this, 'identityPoolUnauthenticatedRole', {
+//      assumedBy: identityPoolFederatedPrinical,
+//      roleName: 'identityPoolUnauthenticatedRole',
+//      description: 'Cognito IdentityPool unauthenticated role',
+//    });
+//
+//    // from https://github.com/aws/aws-cdk/issues/7670
+//    const roleMapping : cognito.CfnIdentityPoolRoleAttachment.RoleMappingProperty = {
+//        type: 'Token',
+//        ambiguousRoleResolution: 'Deny', // AuthenticatedRole or Deny
+//        identityProvider: `${opensearchUserPool.userPoolProviderName}`
+//       //identityProvider: `${opensearchUserPool.userPoolProviderName}:${opensearhUserPoolClient.userPoolClientId}`
+//        //identityProvider: `${opensearchUserPool.userPoolProviderName}:app_client_id`
+//    };
+//
+//    const opensearchIdentityPoolRoleAttachment = new cognito.CfnIdentityPoolRoleAttachment(this, "roleAttachment", {
+//      identityPoolId: opensearchIdentityPool.ref,
+//      roleMappings: {
+//        'cognito': roleMapping
+//      },
+//      //roleMappings: {
+//      //  cognito: { // 👈 manually specified key of "cognito"
+//      //    type: "Token",
+//      //    ambiguousRoleResolution: "Deny",
+//      //    identityProvider: `${opensearchUserPool.userPoolProviderName}:${opensearhUserPoolClient.userPoolClientId}`
+//      //    //identityProvider: opensearchUserPool.userPoolProviderUrl
+//      //  }
+//      //},
+//      roles: { 
+//        authenticated: identityPoolAuthenticatedRole.roleArn,
+//        unauthenticated: identityPoolUnauthenticatedRole.roleArn,
+//      }
+//    }).node.addDependency(opensearchIdentityPool)
+

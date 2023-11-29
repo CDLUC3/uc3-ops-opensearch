@@ -1,7 +1,15 @@
 8/23/2023
 
+- pass vars into ts scripts:
+  - environment
+  - service_name (uc3OpsOpensearch)
+- figure out out to access the identity of the default userPoolClient
+- rename resources to be unique across account
+- customize stack name at deploy time
 - stack tags
-NA - ec2 proxy host
 - custom domain name
-- ssm session manager
-- modify or select security groups
+- explore breaking app into separate stacks
+  - cognito
+  - opensearch
+
+- provision users via sdk

@@ -5,8 +5,18 @@ import * as cdk from 'aws-cdk-lib';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
+import * as cognito_identitypool from '@aws-cdk/aws-cognito-identitypool-alpha';
 import { aws_opensearchservice as opensearch } from 'aws-cdk-lib';
-import { IdentityPool, IdentityPoolRoleMapping, IdentityPoolProviderUrl } from '@aws-cdk/aws-cognito-identitypool-alpha';
+
+//import { IdentityPool, IdentityPoolRoleMapping, IdentityPoolProviderUrl, UserPoolAuthenticationProvider} from '@aws-cdk/aws-cognito-identitypool-alpha';
+
+//function capitalize(string) {
+//    return string.charAt(0).toUpperCase() + string.slice(1);
+//};
+//const environment = 'dev';
+//const resource_prefix = `uc3OpsOpensearch${environment.capitalize}`;
+
+const resource_prefix = 'uc3OpsOpensearchDev';
 
 
 export class Uc3OpsOpensearchDebugStack extends cdk.Stack {
@@ -14,9 +24,14 @@ export class Uc3OpsOpensearchDebugStack extends cdk.Stack {
     super(scope, id, props);
 
 
+    //
     // Cognito UserPool
-    const domainUserPool = new cognito.UserPool(this, 'DomainUserPool', {
-      userPoolName: 'uc3OpsOpenSearch-userpool',
+    //
+
+    const opensearchUserPool = new cognito.UserPool(this, 'UserPool', {
+      //userPoolName: `uc3OpsOpenSearch${environment.capitalize()}-userPool`,
+      userPoolName: `${resource_prefix}-userPool`,
+      //userPoolName: 'uc3OpsOpenSearch-userpool',
       signInAliases: {
         email: true,
       },
@@ -45,67 +60,114 @@ export class Uc3OpsOpensearchDebugStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
-    new cdk.CfnOutput(this, 'userPoolArn', {
-      value: domainUserPool.userPoolArn,
+    const opensearhUserPoolClient = new cognito.UserPoolClient(this, 'UserPoolClient', {
+      userPool: opensearchUserPool, 
+      userPoolClientName: `${resource_prefix}-userPoolClient`
     });
+    //const opensearhUserPoolClient = opensearchUserPool.addClient('UserPoolClient', {
+    //  userPoolClientName: `${resource_prefix}-userPoolClient`
+    //});
 
-    new cdk.CfnOutput(this, 'userPoolId', {
-      value: domainUserPool.userPoolId,
+    const opensearchUserPoolDomain = new cognito.UserPoolDomain(this, 'UserPoolDomain', {
+      userPool: opensearchUserPool,
+      cognitoDomain: {
+        domainPrefix: 'uc3-ops-opensearch-dev',
+        //domainPrefix: `uc3-ops-opensearch-${environment}`,
+      },
     });
-
-    new cdk.CfnOutput(this, 'userPoolProviderUrl', {
-      value: domainUserPool.userPoolProviderUrl,
-    });
-
-    new cdk.CfnOutput(this, 'userPoolProviderName', {
-      value: domainUserPool.userPoolProviderName,
-    });
-
-
-    const OSDomainClient = new cognito.UserPoolClient(this, 'UserPoolClieint', {
-      userPool: domainUserPool 
-    });
-
-    new cdk.CfnOutput(this, 'userPoolClientId', {
-      value: OSDomainClient.userPoolClientId,
-    });
-
-    const userPoolProviderUrl = domainUserPool.userPoolProviderUrl;
-    const userPoolClientId = OSDomainClient.userPoolClientId;
-    const providerUrl = `${userPoolProviderUrl}:${userPoolClientId}`;
-    //const providerUrl = `${userPoolProviderUrl}:app_client_id`;
-    //const providerUrl = `${domainUserPool.userPoolProviderName}:app_client_id`;
-    //const providerUrl = `${domainUserPool.userPoolProviderName}:${userPoolClientId}`;
-
-    new cdk.CfnOutput(this, 'providerUrl', {
-      value: providerUrl,
-    });
-
-    //const domainIdentityPool = new IdentityPool(this, 'IdentityPool', {
-    //  identityPoolName: 'uc3OpsOpenSearch-identitypool',
-    //  // https://docs.aws.amazon.com/cdk/api/v2/docs/@aws-cdk_aws-cognito-identitypool-alpha.IdentityPoolProviderUrl.html
-    //  roleMappings: [{
-    //    mappingKey: 'DomainUserPool',
-    //    //providerUrl: IdentityPoolProviderUrl.userPool(domainUserPool.userPoolProviderUrl),
-    //    providerUrl: IdentityPoolProviderUrl.userPool(providerUrl),
-    //    useToken: true,
-    //  }],
-    //}); 
-
-
-
-// Uc3OpsOpensearchStack: creating CloudFormation changeset...
-//6:47:45 PM | UPDATE_FAILED        | AWS::Cognito::IdentityPoolRoleAttachment | IdentityPoolDefaul...AttachmentD81AFC39
-//(https://cognito-idp.us-west-2.amazonaws.com/us-west-2_s0hFURHmp) is not a valid RoleMapping ProviderName or is not a configured provider. (Service: AmazonCognitoIdentity; Status Code: 400; Error Code: Invalid
-
-
-
-
-    //domainUserPool.addDomain('CognitoDomain', {
+    //const opensearchUserPoolDomain = opensearchUserPool.addDomain('UserPoolDomain', {
     //  cognitoDomain: {
-    //    domainPrefix: 'uc3-ops-opensearch',
+    //    domainPrefix: 'uc3-ops-opensearch-dev',
+    //    //domainPrefix: `uc3-ops-opensearch-${environment}`,
     //  },
     //});
+
+    new cdk.CfnOutput(this, 'userPoolArn', {
+      value: opensearchUserPool.userPoolArn,
+    });
+    new cdk.CfnOutput(this, 'userPoolId', {
+      value: opensearchUserPool.userPoolId,
+    });
+    //new cdk.CfnOutput(this, 'userPoolProviderUrl', {
+    //  value: opensearchUserPool.userPoolProviderUrl,
+    //});
+    //new cdk.CfnOutput(this, 'userPoolProviderName', {
+    //  value: opensearchUserPool.userPoolProviderName,
+    //});
+    new cdk.CfnOutput(this, 'userPoolClientId', {
+      value: opensearhUserPoolClient.userPoolClientId,
+    });
+    new cdk.CfnOutput(this, 'userPoolClientName', {
+      value: opensearhUserPoolClient.userPoolClientName,
+    });
+    new cdk.CfnOutput(this, 'userPoolDomain', {
+      value: opensearchUserPoolDomain.domainName,
+    });
+
+
+
+
+
+    //
+    // Cognito IdentityPool
+    //
+
+    const opensearchUserPoolProvider = new cognito_identitypool.UserPoolAuthenticationProvider({
+      userPool: opensearchUserPool,
+      userPoolClient: opensearhUserPoolClient
+    });
+
+    const providerUrlString = `${opensearchUserPool.userPoolProviderName}:${opensearhUserPoolClient.userPoolClientId}`
+    const opensearchIdentityPool = new cognito_identitypool.IdentityPool(this, 'IdentityPool', {
+      identityPoolName: `${resource_prefix}-identityPool`,
+      //identityPoolName: 'uc3OpsOpenSearch-identityPool',
+      authenticationProviders: {
+        userPools: [opensearchUserPoolProvider]
+      },
+      roleMappings: [{
+        mappingKey: 'cognitoUserPool',
+        //providerUrl: cognito_identitypool.IdentityPoolProviderUrl.userPool(opensearchUserPool.userPoolProviderUrl),
+        //providerUrl: cognito_identitypool.IdentityPoolProviderUrl.userPool(`${opensearchUserPool.userPoolProviderName}:${userPoolClientId}`),
+        providerUrl: cognito_identitypool.IdentityPoolProviderUrl.userPool(providerUrlString),
+        useToken: true,
+      }],
+    }); 
+
+    new cdk.CfnOutput(this, 'identityPoolName', {
+      value: opensearchIdentityPool.identityPoolName,
+    });
+    new cdk.CfnOutput(this, 'identityPoolArn', {
+      value: opensearchIdentityPool.identityPoolArn,
+    });
+    new cdk.CfnOutput(this, 'identityPoolId', {
+      value: opensearchIdentityPool.identityPoolId,
+    });
+
+
+
+
+
+
+
+    //const domainAdminGroup = new cognito.CfnUserPoolGroup(this, 'domainAdminGroup', {
+    //  userPoolId: opensearchUserPool.userPoolId ,
+    //  description: 'OpenSearch Administrators',
+    //  groupName: 'admin',
+    //  precedence: 1,
+    //  roleArn: domainAdminGroupRole.roleArn,
+    //});
+
+    //const domainDeveloperGroup = new cognito.CfnUserPoolGroup(this, 'domainDeveloperGroup', {
+    //  userPoolId: opensearchUserPool.userPoolId ,
+    //  description: 'Uc3 Developers',
+    //  groupName: 'developer',
+    //  precedence: 10,
+    //  roleArn: domainDeveloperGroupRole.roleArn,
+    //});
+
+
+
+
 
 
 
@@ -128,98 +190,6 @@ export class Uc3OpsOpensearchDebugStack extends cdk.Stack {
 //
 //
 //
-
-
-
-
-
-
-    const domainIdentityPool = new cognito.CfnIdentityPool(this, 'IdentityPool', {
-      allowUnauthenticatedIdentities: false,
-      identityPoolName: 'uc3OpsOpenSearch-identitypool',
-    });
-
-    new cdk.CfnOutput(this, 'identityPool', {
-      value: domainIdentityPool.ref,
-    });
-
-
-    const identityPoolFederatedPrinical =  new iam.FederatedPrincipal(
-      'cognito-identity.amazonaws.com',
-      {
-        "StringEquals": {
-          //"cognito-identity.amazonaws.com:aud": domainIdentityPool.identityPoolId
-          "cognito-identity.amazonaws.com:aud": domainIdentityPool.ref
-        },
-        "ForAnyValue:StringLike": {
-          "cognito-identity.amazonaws.com:amr": "authenticated"
-        },
-      },
-      'sts:AssumeRoleWithWebIdentity'
-    );
-
-    const identityPoolAuthenticatedRole = new iam.Role(this, 'identityPoolAuthenticatedRole', {
-      assumedBy: identityPoolFederatedPrinical,
-      roleName: 'identityPoolAuthenticatedRole',
-      description: 'Cognito IdentityPool authenticated role',
-    });
-
-    const identityPoolUnauthenticatedRole = new iam.Role(this, 'identityPoolUnauthenticatedRole', {
-      assumedBy: identityPoolFederatedPrinical,
-      roleName: 'identityPoolUnauthenticatedRole',
-      description: 'Cognito IdentityPool unauthenticated role',
-    });
-
-    // from https://github.com/aws/aws-cdk/issues/7670
-    const roleMapping : cognito.CfnIdentityPoolRoleAttachment.RoleMappingProperty = {
-        type: 'Token',
-        ambiguousRoleResolution: 'Deny', // AuthenticatedRole or Deny
-        identityProvider: `${domainUserPool.userPoolProviderName}`
-       //identityProvider: `${domainUserPool.userPoolProviderName}:${OSDomainClient.userPoolClientId}`
-        //identityProvider: `${domainUserPool.userPoolProviderName}:app_client_id`
-    };
-
-    const domainIdentityPoolRoleAttachment = new cognito.CfnIdentityPoolRoleAttachment(this, "roleAttachment", {
-      identityPoolId: domainIdentityPool.ref,
-      roleMappings: {
-        'cognito': roleMapping
-      },
-      //roleMappings: {
-      //  cognito: { // 👈 manually specified key of "cognito"
-      //    type: "Token",
-      //    ambiguousRoleResolution: "Deny",
-      //    identityProvider: `${domainUserPool.userPoolProviderName}:${OSDomainClient.userPoolClientId}`
-      //    //identityProvider: domainUserPool.userPoolProviderUrl
-      //  }
-      //},
-      roles: { 
-        authenticated: identityPoolAuthenticatedRole.roleArn,
-        unauthenticated: identityPoolUnauthenticatedRole.roleArn,
-      }
-    }).node.addDependency(domainIdentityPool)
-
-
-
-
-
-
-    //const domainAdminGroup = new cognito.CfnUserPoolGroup(this, 'domainAdminGroup', {
-    //  userPoolId: domainUserPool.userPoolId ,
-    //  description: 'OpenSearch Administrators',
-    //  groupName: 'admin',
-    //  precedence: 1,
-    //  roleArn: domainAdminGroupRole.roleArn,
-    //});
-
-    //const domainDeveloperGroup = new cognito.CfnUserPoolGroup(this, 'domainDeveloperGroup', {
-    //  userPoolId: domainUserPool.userPoolId ,
-    //  description: 'Uc3 Developers',
-    //  groupName: 'developer',
-    //  precedence: 10,
-    //  roleArn: domainDeveloperGroupRole.roleArn,
-    //});
-
-
 
 
 //    // OpenSearch Domain
@@ -245,7 +215,7 @@ export class Uc3OpsOpensearchDebugStack extends cdk.Stack {
 //      fineGrainedAccessControl: {
 //        //masterUserName: 'domain-admin',
 //        //masterUserArn: domainAdminGroupRole.roleArn,
-//        masterUserArn: domainIdentityPool.authenticatedRole.roleArn
+//        masterUserArn: opensearchIdentityPool.authenticatedRole.roleArn
 //        //masterUserPassword: cdk.SecretValue.secretsManager('uc3-ops-opensearch-dev-admin-password'),
 //      },
 //      zoneAwareness: {
@@ -259,8 +229,8 @@ export class Uc3OpsOpensearchDebugStack extends cdk.Stack {
 //
 //      cognitoDashboardsAuth: {
 //        role: domainSearchRole,
-//        identityPoolId: domainIdentityPool.identityPoolId,
-//        userPoolId: domainUserPool.userPoolId,
+//        identityPoolId: opensearchIdentityPool.identityPoolId,
+//        userPoolId: opensearchUserPool.userPoolId,
 //      },
 //
 //      logging: {
@@ -276,7 +246,7 @@ export class Uc3OpsOpensearchDebugStack extends cdk.Stack {
 //      new iam.PolicyStatement({
 //        actions: ['es:ESHttp*'],
 //        effect: iam.Effect.ALLOW,
-//        //principals: [new iam.ArnPrincipal(domainIdentityPool.authenticatedRole.roleArn)],
+//        //principals: [new iam.ArnPrincipal(opensearchIdentityPool.authenticatedRole.roleArn)],
 //        principals: [new iam.ArnPrincipal('*')],
 //        resources: [domain.domainArn, `${domain.domainArn}/*`],
 //      })

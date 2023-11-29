@@ -17,4 +17,8 @@ new Uc3OpsOpensearchStack(app, 'Uc3OpsOpensearchStack', {
   },
 });
 
-new Uc3OpsOpensearchDebugStack(app, 'Uc3OpsOpensearchDebugStack');
+new Uc3OpsOpensearchDebugStack(app, 'Uc3OpsOpensearchDebugStack', {
+  env: {
+    region: 'us-west-2',
+  },
+});
