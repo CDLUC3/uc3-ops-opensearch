@@ -22,3 +22,17 @@ new Uc3OpsOpensearchDebugStack(app, 'Uc3OpsOpensearchDebugStack', {
     region: 'us-west-2',
   },
 });
+
+//new Uc3OpsOpensearchStack(app, 'Uc3OpsOpensearchDevStack', {
+//  env: {
+//    account: '671846987296',
+//    region: 'us-west-2',
+//  },
+//});
+//
+//new Uc3OpsOpensearchStack(app, 'Uc3OpsOpensearchPrdStack', {
+//  env: {
+//    account: '',
+//    region: 'us-west-2',
+//  },
+//});

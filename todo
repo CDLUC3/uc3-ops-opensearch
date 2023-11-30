@@ -13,3 +13,4 @@
   - opensearch
 
 - provision users via sdk
+- set up CDK Pipelines: https://docs.aws.amazon.com/cdk/v2/guide/cdk_pipeline.html

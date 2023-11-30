@@ -42,3 +42,18 @@ The CDK Construct Library for AWS::Cognito Identity Pools
 https://github.com/aws/aws-cdk
 
 npm install @aws-cdk/aws-cognito-identitypool-alpha@2.110.0-alpha.0
+
+
+Using CDK
+---------
+
+to launch an app not specified in cdk.json:
+```
+cdk --app "npx ts-node bin/hello-cdk.ts" ls
+```
+
+
+
+
+
+
