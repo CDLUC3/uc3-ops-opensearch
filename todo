@@ -3,14 +3,17 @@
 - pass vars into ts scripts:
   - environment
   - service_name (uc3OpsOpensearch)
+  - custom url
 - figure out out to access the identity of the default userPoolClient
-- rename resources to be unique across account
+DONE - rename resources to be unique across account
 - customize stack name at deploy time
 - stack tags
-- custom domain name
+DONE - custom domain name
 - explore breaking app into separate stacks
   - cognito
   - opensearch
 
+- set permissions for services to post to indexes
+  - additional access policies on OS domain construct
 - provision users via sdk
 - set up CDK Pipelines: https://docs.aws.amazon.com/cdk/v2/guide/cdk_pipeline.html

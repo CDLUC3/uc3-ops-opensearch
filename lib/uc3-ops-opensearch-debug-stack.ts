@@ -4,6 +4,8 @@ import { Construct } from 'constructs';
 import * as cdk from 'aws-cdk-lib';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as ssm from 'aws-cdk-lib/aws-ssm';
+import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as cognito_identitypool from '@aws-cdk/aws-cognito-identitypool-alpha';
 import { aws_opensearchservice as opensearch } from 'aws-cdk-lib';
@@ -17,6 +19,8 @@ import { aws_opensearchservice as opensearch } from 'aws-cdk-lib';
 //const resource_prefix = `uc3OpsOpensearch${environment.capitalize}`;
 
 const resource_prefix = 'uc3OpsOpensearchDev';
+const dnsDomain = 'uc3dev.cdlib.org';
+const opensearchDomainName = 'uc3-ops-opensearch-debug.uc3dev.cdlib.org';
 
 
 export class Uc3OpsOpensearchDebugStack extends cdk.Stack {
@@ -60,13 +64,18 @@ export class Uc3OpsOpensearchDebugStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
+
     const opensearhUserPoolClient = new cognito.UserPoolClient(this, 'UserPoolClient', {
       userPool: opensearchUserPool, 
-      userPoolClientName: `${resource_prefix}-userPoolClient`
+      userPoolClientName: `${resource_prefix}-userPoolClient`,
+      oAuth: {
+        callbackUrls: [`https://${opensearchDomainName}/_dashboards/app/home`],
+      }
     });
     //const opensearhUserPoolClient = opensearchUserPool.addClient('UserPoolClient', {
     //  userPoolClientName: `${resource_prefix}-userPoolClient`
     //});
+
 
     const opensearchUserPoolDomain = new cognito.UserPoolDomain(this, 'UserPoolDomain', {
       userPool: opensearchUserPool,
@@ -81,6 +90,7 @@ export class Uc3OpsOpensearchDebugStack extends cdk.Stack {
     //    //domainPrefix: `uc3-ops-opensearch-${environment}`,
     //  },
     //});
+
 
     new cdk.CfnOutput(this, 'userPoolArn', {
       value: opensearchUserPool.userPoolArn,
@@ -128,6 +138,7 @@ export class Uc3OpsOpensearchDebugStack extends cdk.Stack {
         mappingKey: 'cognitoUserPool',
         providerUrl: cognito_identitypool.IdentityPoolProviderUrl.userPool(providerUrlString),
         useToken: true,
+        //resolveAmbiguousRoles: true,
       }],
     }); 
 
@@ -228,7 +239,34 @@ export class Uc3OpsOpensearchDebugStack extends cdk.Stack {
     // OpenSearch Domain
     //
 
-    const domain = new opensearch.Domain(this, 'Domain', {
+    //const hostedZoneId = ssm.StringParameter.valueFromLookup(this, '/uc3/HostedZoneId');
+    //new cdk.CfnOutput(this, 'hostedZondId', {
+    //  value: hostedZoneId,
+    //});
+
+    // requires both account id and region to be specified in cdk env
+    const hostedZone = route53.HostedZone.fromLookup(this, 'MyZone', {
+      domainName: dnsDomain,
+    });
+    //new cdk.CfnOutput(this, 'hostedZone', {
+    //  value: hostedZone.toString(),
+    //});
+    new cdk.CfnOutput(this, 'hostedZoneId', {
+      value: hostedZone.hostedZoneId,
+    });
+    new cdk.CfnOutput(this, 'hostedZoneName', {
+      value: hostedZone.zoneName,
+    });
+
+
+    //opensearchDomainNameCertificate = new acm.Certificate(this, 'Certificate', {
+    //  domainName: opensearchDomainName,
+    //  //certificateName: 'Hello World Service', // Optionally provide an certificate name
+    //  validation: acm.CertificateValidation.fromDns(hostedZone),
+    //});
+
+
+    const opensearchDomain = new opensearch.Domain(this, 'Domain', {
       version: opensearch.EngineVersion.OPENSEARCH_2_7,
       enableVersionUpgrade: true,
       enableAutoSoftwareUpdate: true,
@@ -249,18 +287,19 @@ export class Uc3OpsOpensearchDebugStack extends cdk.Stack {
       enforceHttps: true,
       fineGrainedAccessControl: {
         //masterUserName: 'domain-admin',
+        //masterUserPassword: cdk.SecretValue.secretsManager('uc3-ops-opensearch-dev-admin-password'),
         //masterUserArn: userPoolGroupAdminRole.roleArn,
         masterUserArn: opensearchIdentityPool.authenticatedRole.roleArn
-        //masterUserPassword: cdk.SecretValue.secretsManager('uc3-ops-opensearch-dev-admin-password'),
       },
       zoneAwareness: {
         enabled: true,
         availabilityZoneCount: 3,
       },
 
-      //customEndpoint: {
-      //  domainName: 'uc3-ops-opensearch.uc3dev.cdlib.org',
-      //},
+      customEndpoint: {
+        domainName: opensearchDomainName,
+        hostedZone: hostedZone,
+      },
 
       cognitoDashboardsAuth: {
         role: opensearchServiceRole,
@@ -277,11 +316,11 @@ export class Uc3OpsOpensearchDebugStack extends cdk.Stack {
     });
 
     new cdk.CfnOutput(this, 'domainName', {
-      value: domain.domainName,
+      value: opensearchDomain.domainName,
     });
 
     new cdk.CfnOutput(this, 'domainEndpoint', {
-      value: domain.domainEndpoint,
+      value: opensearchDomain.domainEndpoint,
     });
 
 
@@ -289,15 +328,15 @@ export class Uc3OpsOpensearchDebugStack extends cdk.Stack {
 
 
 
-    //domain.addAccessPolicies(
-    //  new iam.PolicyStatement({
-    //    actions: ['es:ESHttp*'],
-    //    effect: iam.Effect.ALLOW,
-    //    //principals: [new iam.ArnPrincipal(opensearchIdentityPool.authenticatedRole.roleArn)],
-    //    principals: [new iam.ArnPrincipal('*')],
-    //    resources: [domain.domainArn, `${domain.domainArn}/*`],
-    //  })
-    //);
+    opensearchDomain.addAccessPolicies(
+      new iam.PolicyStatement({
+        actions: ['es:ESHttp*'],
+        effect: iam.Effect.ALLOW,
+        //principals: [new iam.ArnPrincipal(opensearchIdentityPool.authenticatedRole.roleArn)],
+        principals: [new iam.ArnPrincipal('*')],
+        resources: [opensearchDomain.domainArn, `${opensearchDomain.domainArn}/*`],
+      })
+    );
 
     //
     //userPoolGroupAdminRole.addToPolicy(
@@ -305,7 +344,7 @@ export class Uc3OpsOpensearchDebugStack extends cdk.Stack {
     //    effect: iam.Effect.ALLOW,
     //    actions: ["es:ESHttp*"],
     //    //principals: [new iam.AnyPrincipal()],
-    //    resources: [domain.domainArn, `${domain.domainArn}/*`],
+    //    resources: [opensearchDomain.domainArn, `${opensearchDomain.domainArn}/*`],
     //  })
     //);
     //
@@ -314,7 +353,7 @@ export class Uc3OpsOpensearchDebugStack extends cdk.Stack {
     ////      statements: [new iam.PolicyStatement({
     ////        effect: iam.Effect.ALLOW,
     ////        actions: ["es:ESHttp*"],
-    ////        resources: [domain.domainArn, `${domain.domainArn}/*`],
+    ////        resources: [opensearchDomain.domainArn, `${opensearchDomain.domainArn}/*`],
     ////        principals: [new iam.AnyPrincipal()],
     ////      })
     ////    ],

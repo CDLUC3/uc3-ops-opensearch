@@ -1,1 +1,7 @@
-{}
+{
+  "ssm:account=671846987296:parameterName=/uc3/HostedZoneId:region=us-west-2": "AQICAHhUgNDinhYKoQ5ogHS0diBImbeueT7MYCH/D1dwALHOzQFAVXBcJVTpviaVHaBCRsfSAAAAczBxBgkqhkiG9w0BBwagZDBiAgEAMF0GCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQM+lfCt4xV+W2v2+F9AgEQgDCKOhJfzKGdppmBsvwEr2FX2vmON7Xf5enXKyCbSmscPRNn+8G8HAHA6W8Tst1LknA=",
+  "hosted-zone:account=671846987296:domainName=uc3dev.cdlib.org:region=us-west-2": {
+    "Id": "/hostedzone/Z067986322GQZ8PAB5617",
+    "Name": "uc3dev.cdlib.org."
+  }
+}

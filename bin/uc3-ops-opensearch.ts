@@ -19,6 +19,7 @@ new Uc3OpsOpensearchStack(app, 'Uc3OpsOpensearchStack', {
 
 new Uc3OpsOpensearchDebugStack(app, 'Uc3OpsOpensearchDebugStack', {
   env: {
+    account: '671846987296',
     region: 'us-west-2',
   },
 });
