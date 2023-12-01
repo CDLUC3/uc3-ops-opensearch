@@ -17,3 +17,11 @@ DONE - custom domain name
   - additional access policies on OS domain construct
 - provision users via sdk
 - set up CDK Pipelines: https://docs.aws.amazon.com/cdk/v2/guide/cdk_pipeline.html
+
+
+
+12/1/2023
+remove resouce for user pool client
+template only launches one opensource data server now.
+test what happens to userpool app client when launching synthesized cfn template manually:
+- does the client get created?

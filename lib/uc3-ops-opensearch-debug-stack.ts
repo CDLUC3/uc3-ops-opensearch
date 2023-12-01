@@ -65,16 +65,16 @@ export class Uc3OpsOpensearchDebugStack extends cdk.Stack {
     });
 
 
-    const opensearhUserPoolClient = new cognito.UserPoolClient(this, 'UserPoolClient', {
-      userPool: opensearchUserPool, 
-      userPoolClientName: `${resource_prefix}-userPoolClient`,
-      oAuth: {
-        callbackUrls: [`https://${opensearchDomainName}/_dashboards/app/home`],
-      }
-    });
-    //const opensearhUserPoolClient = opensearchUserPool.addClient('UserPoolClient', {
-    //  userPoolClientName: `${resource_prefix}-userPoolClient`
-    //});
+//    const opensearhUserPoolClient = new cognito.UserPoolClient(this, 'UserPoolClient', {
+//      userPool: opensearchUserPool, 
+//      userPoolClientName: `${resource_prefix}-userPoolClient`,
+//      oAuth: {
+//        callbackUrls: [`https://${opensearchDomainName}/_dashboards/app/home`],
+//      }
+//    });
+//    //const opensearhUserPoolClient = opensearchUserPool.addClient('UserPoolClient', {
+//    //  userPoolClientName: `${resource_prefix}-userPoolClient`
+//    //});
 
 
     const opensearchUserPoolDomain = new cognito.UserPoolDomain(this, 'UserPoolDomain', {
@@ -104,12 +104,12 @@ export class Uc3OpsOpensearchDebugStack extends cdk.Stack {
     //new cdk.CfnOutput(this, 'userPoolProviderName', {
     //  value: opensearchUserPool.userPoolProviderName,
     //});
-    new cdk.CfnOutput(this, 'userPoolClientId', {
-      value: opensearhUserPoolClient.userPoolClientId,
-    });
-    new cdk.CfnOutput(this, 'userPoolClientName', {
-      value: opensearhUserPoolClient.userPoolClientName,
-    });
+//    new cdk.CfnOutput(this, 'userPoolClientId', {
+//      value: opensearhUserPoolClient.userPoolClientId,
+//    });
+//    new cdk.CfnOutput(this, 'userPoolClientName', {
+//      value: opensearhUserPoolClient.userPoolClientName,
+//    });
     new cdk.CfnOutput(this, 'userPoolDomain', {
       value: opensearchUserPoolDomain.domainName,
     });
@@ -122,25 +122,29 @@ export class Uc3OpsOpensearchDebugStack extends cdk.Stack {
     // Cognito IdentityPool
     //
 
-    const providerUrlString = `${opensearchUserPool.userPoolProviderName}:${opensearhUserPoolClient.userPoolClientId}`
-
-    const opensearchUserPoolProvider = new cognito_identitypool.UserPoolAuthenticationProvider({
-      userPool: opensearchUserPool,
-      userPoolClient: opensearhUserPoolClient
-    });
+//    const providerUrlString = `${opensearchUserPool.userPoolProviderName}:${opensearhUserPoolClient.userPoolClientId}`
+//
+//    const opensearchUserPoolProvider = new cognito_identitypool.UserPoolAuthenticationProvider({
+//      userPool: opensearchUserPool,
+//      userPoolClient: opensearhUserPoolClient
+//    });
+//
+//    const opensearchIdentityPool = new cognito_identitypool.IdentityPool(this, 'IdentityPool', {
+//      identityPoolName: `${resource_prefix}-identityPool`,
+//      authenticationProviders: {
+//        userPools: [opensearchUserPoolProvider]
+//      },
+//      roleMappings: [{
+//        mappingKey: 'cognitoUserPool',
+//        providerUrl: cognito_identitypool.IdentityPoolProviderUrl.userPool(providerUrlString),
+//        useToken: true,
+//        //resolveAmbiguousRoles: true,
+//      }],
+//    }); 
 
     const opensearchIdentityPool = new cognito_identitypool.IdentityPool(this, 'IdentityPool', {
       identityPoolName: `${resource_prefix}-identityPool`,
-      authenticationProviders: {
-        userPools: [opensearchUserPoolProvider]
-      },
-      roleMappings: [{
-        mappingKey: 'cognitoUserPool',
-        providerUrl: cognito_identitypool.IdentityPoolProviderUrl.userPool(providerUrlString),
-        useToken: true,
-        //resolveAmbiguousRoles: true,
-      }],
-    }); 
+    });
 
     new cdk.CfnOutput(this, 'identityPoolName', {
       value: opensearchIdentityPool.identityPoolName,
@@ -272,7 +276,7 @@ export class Uc3OpsOpensearchDebugStack extends cdk.Stack {
       enableAutoSoftwareUpdate: true,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       capacity: {
-        dataNodes: 3,
+        dataNodes: 1,
         dataNodeInstanceType: 't3.small.search',
         multiAzWithStandbyEnabled: false,
       },
@@ -291,10 +295,10 @@ export class Uc3OpsOpensearchDebugStack extends cdk.Stack {
         //masterUserArn: userPoolGroupAdminRole.roleArn,
         masterUserArn: opensearchIdentityPool.authenticatedRole.roleArn
       },
-      zoneAwareness: {
-        enabled: true,
-        availabilityZoneCount: 3,
-      },
+//      zoneAwareness: {
+//        enabled: true,
+//        availabilityZoneCount: 3,
+//      },
 
       customEndpoint: {
         domainName: opensearchDomainName,
@@ -308,9 +312,9 @@ export class Uc3OpsOpensearchDebugStack extends cdk.Stack {
       },
 
       logging: {
-        auditLogEnabled: true,
+        auditLogEnabled: false,
         slowSearchLogEnabled: false,
-        appLogEnabled: true,
+        appLogEnabled: false,
         slowIndexLogEnabled: false,
       },
     });
@@ -332,8 +336,8 @@ export class Uc3OpsOpensearchDebugStack extends cdk.Stack {
       new iam.PolicyStatement({
         actions: ['es:ESHttp*'],
         effect: iam.Effect.ALLOW,
-        //principals: [new iam.ArnPrincipal(opensearchIdentityPool.authenticatedRole.roleArn)],
-        principals: [new iam.ArnPrincipal('*')],
+        principals: [new iam.ArnPrincipal(opensearchIdentityPool.authenticatedRole.roleArn)],
+        //principals: [new iam.ArnPrincipal('*')],
         resources: [opensearchDomain.domainArn, `${opensearchDomain.domainArn}/*`],
       })
     );
